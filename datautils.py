@@ -36,7 +36,7 @@ def get_custom(nsamples, seed, seqlen, model):
 
     from transformers import AutoTokenizer 
     tokenizer = AutoTokenizer.from_pretrained(model, use_fast=False)
-    trainenc = [tokenizer(e, return_tensors='pt') for e in traindata]
+    trainenc = [tokenizer(e, return_tensors='pt', padding='max_length') for e in traindata]
     
     import random
     random.seed(seed)
@@ -44,12 +44,7 @@ def get_custom(nsamples, seed, seqlen, model):
     encs = []
     for _ in range(nsamples):
         choice = random.choice(trainenc)
-        inp = torch.zeros((1, seqlen), dtype=torch.int64)
-        inp[:,:choice.input_ids.shape[1]] = choice.input_ids[:, :]
-        tar = torch.zeros((1, seqlen), dtype=torch.int64)
-        tar[:,:choice.input_ids.shape[1]-2] = -100
-        tar[:,choice.input_ids.shape[1]-2] = choice.input_ids[:, -2]
-        trainloader.append((inp, None))
+        trainloader.append((choice.input_ids, None))
         encs.append(random.choice(trainenc))
     
     return trainloader, encs
