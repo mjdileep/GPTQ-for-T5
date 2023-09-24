@@ -45,11 +45,11 @@ def get_custom(nsamples, seed, seqlen, model):
     for _ in range(nsamples):
         choice = random.choice(trainenc)
         inp = torch.zeros((1, seqlen), dtype=torch.int64)
-        inp[:,:choice.input_ids.shape[1]-2] = choice.input_ids[:, :-2]
+        inp[:,:choice.input_ids.shape[1]] = choice.input_ids[:, :]
         tar = torch.zeros((1, seqlen), dtype=torch.int64)
         tar[:,:choice.input_ids.shape[1]-2] = -100
         tar[:,choice.input_ids.shape[1]-2] = choice.input_ids[:, -2]
-        trainloader.append((inp, tar))
+        trainloader.append((inp, None))
         encs.append(random.choice(trainenc))
     
     return trainloader, encs
