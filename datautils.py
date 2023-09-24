@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import json
 
 
 def set_seed(seed):
@@ -24,81 +25,30 @@ def get_wikitext2(nsamples, seed, seqlen, model):
         i = random.randint(0, trainenc.input_ids.shape[1] - seqlen - 1)
         j = i + seqlen
         inp = trainenc.input_ids[:, i:j]
-        tar = inp.clone()
+        tar = trainenc.input_ids[:, i+1:j+1].clone()
         tar[:, :-1] = -100
         trainloader.append((inp, tar))
     return trainloader, testenc
 
-def get_ptb(nsamples, seed, seqlen, model):
-    from datasets import load_dataset
-    traindata = load_dataset('ptb_text_only', 'penn_treebank', split='train')
-    valdata = load_dataset('ptb_text_only', 'penn_treebank', split='validation')
+def get_custom(nsamples, seed, seqlen, model):
+    with open("data/train/dataset.json", "r") as fp:
+        traindata = json.load(fp)
 
     from transformers import AutoTokenizer 
     tokenizer = AutoTokenizer.from_pretrained(model, use_fast=False)
-    trainenc = tokenizer("\n\n".join(traindata['sentence']), return_tensors='pt')
-    testenc = tokenizer("\n\n".join(valdata['sentence']), return_tensors='pt')
-
+    trainenc = [tokenizer(e, return_tensors='pt') for e in traindata]
+    
     import random
     random.seed(seed)
     trainloader = []
     for _ in range(nsamples):
-        i = random.randint(0, trainenc.input_ids.shape[1] - seqlen - 1)
-        j = i + seqlen
-        inp = trainenc.input_ids[:, i:j]
-        tar = inp.clone()
+        choice = random.choice(trainenc)
+        inp = choice.input_ids[:, :-1]
+        tar = choice.input_ids[:, 1:].clone()
         tar[:, :-1] = -100
         trainloader.append((inp, tar))
-    return trainloader, testenc
-
-def get_c4(nsamples, seed, seqlen, model):
-    from datasets import load_dataset
-    traindata = load_dataset(
-        'allenai/c4', 'allenai--c4', data_files={'train': 'en/c4-train.00000-of-01024.json.gz'}, split='train', use_auth_token=False
-    )
-    valdata = load_dataset(
-        'allenai/c4', 'allenai--c4', data_files={'validation': 'en/c4-validation.00000-of-00008.json.gz'}, split='validation', use_auth_token=False
-    )
-
-    from transformers import AutoTokenizer
-    tokenizer = AutoTokenizer.from_pretrained(model, use_fast=False)
-
-    import random
-    random.seed(seed)
-    trainloader = []
-    for _ in range(nsamples):
-        while True:
-            i = random.randint(0, len(traindata) - 1)
-            trainenc = tokenizer(traindata[i]['text'], return_tensors='pt')
-            if trainenc.input_ids.shape[1] >= seqlen:
-                break
-        i = random.randint(0, trainenc.input_ids.shape[1] - seqlen - 1)
-        j = i + seqlen
-        inp = trainenc.input_ids[:, i:j]
-        tar = inp.clone()
-        tar[:, :-1] = -100
-        trainloader.append((inp, tar))
-
-    import random
-    random.seed(0)
-    valenc = []
-    for _ in range(256):
-        while True:
-            i = random.randint(0, len(valdata) - 1)
-            tmp = tokenizer(valdata[i]['text'], return_tensors='pt')
-            if tmp.input_ids.shape[1] >= seqlen:
-                break
-        i = random.randint(0, tmp.input_ids.shape[1] - seqlen - 1)
-        j = i + seqlen
-        valenc.append(tmp.input_ids[:, i:j])
-    valenc = torch.hstack(valenc)
-    class TokenizerWrapper:
-        def __init__(self, input_ids):
-            self.input_ids = input_ids
-    valenc = TokenizerWrapper(valenc)
-
-    return trainloader, valenc 
-
+    
+    return trainloader, None
 
 
 def get_ptb_new(nsamples, seed, seqlen, model):
@@ -118,7 +68,7 @@ def get_ptb_new(nsamples, seed, seqlen, model):
         i = random.randint(0, trainenc.input_ids.shape[1] - seqlen - 1)
         j = i + seqlen
         inp = trainenc.input_ids[:, i:j]
-        tar = inp.clone()
+        tar = trainenc.input_ids[:, i+1:j+1].clone()
         tar[:, :-1] = -100
         trainloader.append((inp, tar))
     return trainloader, testenc
@@ -170,6 +120,6 @@ def get_loaders(
             return get_ptb_new(nsamples, seed, seqlen, model)
         return get_ptb(nsamples, seed, seqlen, model)
     if 'c4' in name:
-        if 'new' in name:
-            return get_c4_new(nsamples, seed, seqlen, model)
-        return get_c4(nsamples, seed, seqlen, model)
+        return get_c4_new(nsamples, seed, seqlen, model)
+    if 'custom' in name:
+        return get_custom(nsamples, seed, seqlen, model)
