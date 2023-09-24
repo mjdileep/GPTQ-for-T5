@@ -118,9 +118,7 @@ def get_loaders(
     if 'wikitext2' in name:
         return get_wikitext2(nsamples, seed, seqlen, model)
     if 'ptb' in name:
-        if 'new' in name:
-            return get_ptb_new(nsamples, seed, seqlen, model)
-        return get_ptb(nsamples, seed, seqlen, model)
+        return get_ptb_new(nsamples, seed, seqlen, model)
     if 'c4' in name:
         return get_c4_new(nsamples, seed, seqlen, model)
     if 'custom' in name:
