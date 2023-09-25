@@ -36,7 +36,7 @@ def get_custom(nsamples, seed, seqlen, model):
 
     from transformers import AutoTokenizer 
     tokenizer = AutoTokenizer.from_pretrained(model, use_fast=False)
-    trainenc = [tokenizer(e, return_tensors='pt', padding='max_length') for e in traindata]
+    trainenc = [tokenizer(e[:-7], return_tensors='pt', padding='max_length') for e in traindata]
     
     import random
     random.seed(seed)
